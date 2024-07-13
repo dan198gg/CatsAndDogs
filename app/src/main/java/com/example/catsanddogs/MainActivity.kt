@@ -21,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,15 +39,22 @@ import com.example.catsanddogs.ui.theme.CatsAndDogsTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        val mutableCat= MutableStateFlow<MutableList<CatOrDog>>(
+            mutableListOf(CatOrDog(type = "Сибирский хаски", img = R.drawable.haski),
+            CatOrDog(type = "Японский бобтейл", img = R.drawable.japanesecat)))
+        val stateCat=mutableCat.asStateFlow()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            cardScroll()
+            cardScroll(stateCat,mutableCat)
 
 
 
@@ -58,23 +66,12 @@ class MainActivity : ComponentActivity() {
 
 
 @Composable
-fun cardScroll(){
-
-    var flow1 = getCatsOrDogs()
+fun cardScroll(flow:StateFlow<MutableList<CatOrDog>>,mutableStateFlow: MutableStateFlow<MutableList<CatOrDog>>){
+    var cat=flow.collectAsState()
     var corScope = rememberCoroutineScope()
-    var dog1 by rememberSaveable {
-        mutableStateOf<MutableList<CatOrDog>>(mutableListOf())
-    }
-    var i=0
-    LaunchedEffect(key1 = dog1) {
+    LaunchedEffect(key1 = "") {
         corScope.launch {
-            flow1.collect {
-
-                dog1.add(it)
-                Log.i("CAT",it.type.toString())
-                Log.i("CAT2",dog1[i].type.toString())
-                i+=1
-            }
+            flow.collect()
         }
     }
 
@@ -82,11 +79,10 @@ fun cardScroll(){
         Modifier
             .fillMaxSize()
 ) {
-        items(dog1.size){
+        items(flow.value.size){
             Card(Modifier.padding(30.dp)) {
-                Log.i("CARD",dog1.size.toString())
-                androidx.compose.foundation.Image(painter = painterResource(id = dog1[it].img), contentDescription = "0", modifier = Modifier.padding(30.dp))
-                Text(text =dog1[it].type ,Modifier.align(androidx.compose.ui.Alignment.CenterHorizontally), fontSize = 25.sp)
+                androidx.compose.foundation.Image(painter = painterResource(id = cat.value[it].img), contentDescription = "0", modifier = Modifier.padding(30.dp))
+                Text(text =cat.value[it].type ,Modifier.align(androidx.compose.ui.Alignment.CenterHorizontally), fontSize = 25.sp)
             }
         }
     }
@@ -94,12 +90,3 @@ fun cardScroll(){
 
 
 
-fun getCatsOrDogs() : Flow<CatOrDog> = flow {
-    var dog= mutableListOf(CatOrDog(type = "Акита-ину", img = R.drawable.akitainy),
-        CatOrDog(type = "Сибирский хаски", img = R.drawable.haski),
-        CatOrDog(type = "Японский бобтейл", img = R.drawable.japanesecat)
-    )
-    repeat(dog.size){
-        emit(dog[it])
-    }
-}
